@@ -28,7 +28,7 @@ Local CLI: ccb start -- stdio --> claude mcp serve --> local tools
 | --- | --- |
 | `worker/` | Cloudflare Worker and Durable Object relay |
 | `agent/` | Original local Node.js WebSocket-to-stdio agent |
-| `packages/cli/` | Installable CLI package (`ccb`) |
+| `packages/cli/` | CLI source and standalone package manifest |
 | `docs/` | Architecture, deployment, protocol, CLI and troubleshooting |
 | `assets/` | Architecture and component SVG illustrations |
 
@@ -55,14 +55,13 @@ Save the deployed Worker hostname. Your MCP URL is `https://YOUR-WORKER.workers.
 
 ### 2. Install the local CLI
 
-The CLI package is included in this repository and is prepared for npm publication. Until it is published, install it from a local checkout:
+Install the CLI directly from this GitHub repository using npm:
 
 ```bash
-git clone https://github.com/developer04onserver/claude-code-bridge.git
-cd claude-code-bridge/packages/cli
-npm install
-npm link
+npm install --global github:developer04onserver/claude-code-bridge
 ```
+
+The root npm manifest packages only the CLI runtime files and exposes the `ccb` command. The package is prepared for publishing to the npm registry, but is not published there yet.
 
 ### 3. Connect your computer
 
