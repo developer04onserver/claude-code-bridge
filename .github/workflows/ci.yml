@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check local agent syntax
+        working-directory: agent
+        run: node --check src/index.js
+      - name: Install Worker dependencies
+        working-directory: worker
+        run: npm install
+      - name: Type-check Worker
+        working-directory: worker
+        run: npx tsc --noEmit
