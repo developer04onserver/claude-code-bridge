@@ -24,7 +24,8 @@ function launchClaudeMcp() {
   child = spawn(claudeBin, ["mcp", "serve"], {
     stdio: ["pipe", "pipe", "inherit"],
     env: process.env,
-    windowsHide: true
+    windowsHide: true,
+    shell: process.platform === "win32"
   });
   const lines = createInterface({ input: child.stdout });
   lines.on("line", (line) => {
