@@ -1,0 +1,26 @@
+{
+  "name": "claude-code-bridge-cli",
+  "version": "1.1.0",
+  "description": "CLI for connecting a local Claude Code MCP server to a remote Claude Code Bridge Worker",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "ccb": "./packages/cli/bin/ccb.js",
+    "claude-code-bridge": "./packages/cli/bin/ccb.js"
+  },
+  "files": [
+    "packages/cli/bin/",
+    "packages/cli/src/",
+    "packages/cli/README.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "check": "node --check packages/cli/bin/ccb.js && node --check packages/cli/src/agent.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  },
+  "keywords": ["claude", "claude-code", "mcp", "cloudflare", "cli"]
+}
