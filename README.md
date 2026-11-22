@@ -4,33 +4,22 @@
 
 **Connect a remote MCP client to the Claude Code MCP server running on your own computer, using Cloudflare Workers as a secure relay.**
 
-[Architecture](docs/ARCHITECTURE.md) · [Deployment](docs/DEPLOYMENT.md) · [Protocol](docs/PROTOCOL.md) · [Security](SECURITY.md)
+[Architecture](docs/ARCHITECTURE.md) · [Deployment](docs/DEPLOYMENT.md) · [CLI Guide](docs/CLI.md) · [Protocol](docs/PROTOCOL.md) · [Security](SECURITY.md)
 
 ## Overview
 
-Claude Code Bridge is a self-hosted bridge for a specific workflow: Claude Web (or another compatible remote MCP client) sends MCP requests to a Cloudflare Worker, and the Worker relays them over an outbound WebSocket connection to a local agent. The local agent forwards JSON-RPC messages to the real `claude mcp serve` process.
-
-The Worker does **not** run Claude Code. The local computer does. Your local Claude Code environment, project files, installed tools, and permission settings remain on your machine.
+Claude Code Bridge relays remote MCP requests through a Cloudflare Worker and an outbound WebSocket connection to a local CLI agent. The local agent launches `claude mcp serve` and forwards JSON-RPC messages over stdio. Claude Code and your project files remain on your computer.
 
 ## Architecture
 
 ```text
-Remote MCP client
-      | HTTPS + Bearer token
-      v
-Cloudflare Worker (/mcp)
-      |
-      v
-Durable Object (request correlation)
-      | persistent WSS connection
-      v
-Local Node.js agent
-      | stdio JSON-RPC
-      v
-claude mcp serve
-      |
-      v
-Local projects and tools
+Remote MCP client -- HTTPS + Bearer --> Cloudflare Worker (/mcp)
+                                           |
+                                      Durable Object
+                                           |
+                                    outbound WebSocket
+                                           |
+Local CLI: ccb start -- stdio --> claude mcp serve --> local tools
 ```
 
 ## Repository contents
@@ -38,8 +27,9 @@ Local projects and tools
 | Path | Purpose |
 | --- | --- |
 | `worker/` | Cloudflare Worker and Durable Object relay |
-| `agent/` | Local Node.js WebSocket-to-stdio agent |
-| `docs/` | Architecture, deployment, protocol, troubleshooting |
+| `agent/` | Original local Node.js WebSocket-to-stdio agent |
+| `packages/cli/` | Installable CLI package (`ccb`) |
+| `docs/` | Architecture, deployment, protocol, CLI and troubleshooting |
 | `assets/` | Architecture and component SVG illustrations |
 
 ## Quick start
@@ -48,10 +38,10 @@ Local projects and tools
 
 - Cloudflare account with Workers and Durable Objects.
 - Node.js 20+ and npm.
-- Claude Code installed, authenticated, and providing `claude mcp serve`.
-- A remote MCP client with support for HTTP remote servers and bearer authentication.
+- Claude Code CLI installed and authenticated.
+- A remote MCP client supporting HTTP MCP and bearer authentication.
 
-### 1. Deploy Cloudflare Worker
+### 1. Deploy the Worker
 
 ```bash
 cd worker
@@ -61,71 +51,59 @@ npx wrangler secret put BRIDGE_TOKEN
 npx wrangler deploy
 ```
 
-Save the deployed Worker hostname. Your MCP URL is:
+Save the deployed Worker hostname. Your MCP URL is `https://YOUR-WORKER.workers.dev/mcp`.
 
-```text
-https://YOUR-WORKER.workers.dev/mcp
-```
+### 2. Install the local CLI
 
-### 2. Configure and start the local agent
-
-In a second terminal:
+The CLI package is included in this repository and is prepared for npm publication. Until it is published, install it from a local checkout:
 
 ```bash
-cd agent
+git clone https://github.com/developer04onserver/claude-code-bridge.git
+cd claude-code-bridge/packages/cli
 npm install
+npm link
 ```
 
-Set the environment variables:
+### 3. Connect your computer
 
-**macOS / Linux**
+On the computer where Claude Code is installed, run:
+
 ```bash
-export BRIDGE_AGENT_URL="wss://YOUR-WORKER.workers.dev/agent"
-export BRIDGE_TOKEN="the-same-secret-used-on-Cloudflare"
-npm start
+ccb init
+ccb doctor
+ccb start
 ```
 
-**Windows PowerShell**
-```powershell
-$env:BRIDGE_AGENT_URL = "wss://YOUR-WORKER.workers.dev/agent"
-$env:BRIDGE_TOKEN = "the-same-secret-used-on-Cloudflare"
-npm start
-```
+Enter your Worker MCP URL and the same token configured as `BRIDGE_TOKEN`. The CLI automatically derives the WebSocket endpoint ending in `/agent`, saves the configuration, and starts the local `claude mcp serve` process. Keep `ccb start` running.
 
-Leave the local agent running. It launches `claude mcp serve` and connects to the Worker.
+The connection is outbound WSS. You do not need to open an inbound port or configure router port forwarding.
 
-### 3. Connect your remote MCP client
+### 4. Connect a remote MCP client
 
-In the client's remote MCP connector settings, add:
+In the remote MCP client's connector settings, configure:
 
 - **Server URL:** `https://YOUR-WORKER.workers.dev/mcp`
 - **Authentication:** Bearer token
-- **Token:** the value configured as `BRIDGE_TOKEN`
+- **Token:** the same value used for `BRIDGE_TOKEN`
 
-Claude Web's availability of custom remote MCP connectors and its authentication options can vary by product, account, and rollout. If the setting is not available in your account, this project cannot enable it; use another MCP client that supports remote HTTP MCP.
+Claude Web's availability of custom remote MCP connectors and its authentication options can vary by product, account, and rollout. If the setting is unavailable, use another MCP client that supports remote HTTP MCP.
 
-### 4. Check the Worker
+## CLI commands
 
-```bash
-curl https://YOUR-WORKER.workers.dev/health
-```
+| Command | Purpose |
+| --- | --- |
+| `ccb init` | Configure Worker URL and token |
+| `ccb doctor` | Check local setup |
+| `ccb start` | Start the bridge connection |
+| `ccb config` | Show endpoints without revealing the token |
 
-This checks the Worker process only. A successful MCP tool call additionally requires the local agent to be connected.
+See [CLI documentation](docs/CLI.md) for detailed instructions.
 
-## Security
+## Security and limitations
 
-This bridge can expose powerful local development tools to whoever possesses the bearer token. Use a long random secret, HTTPS/WSS, a restricted local OS account, and Claude Code's permission controls. Never commit `.env` files or paste tokens into issues.
+This bridge can expose powerful local development tools to whoever possesses the bearer token. Use a long random secret, HTTPS/WSS, a restricted local OS account, and Claude Code's permission controls. Never commit configuration files or paste tokens into issues.
 
-This initial version is a single-agent relay. It does not include multi-user identity, a per-tool approval dashboard, audit storage, or SSE streaming. Review [SECURITY.md](SECURITY.md) and [the limitations](docs/PROTOCOL.md) before production use.
-
-## Documentation
-
-- [Architecture and trust boundaries](docs/ARCHITECTURE.md)
-- [Step-by-step deployment](docs/DEPLOYMENT.md)
-- [MCP transport behavior and limitations](docs/PROTOCOL.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
-- [Contributing](CONTRIBUTING.md)
-- [Security policy](SECURITY.md)
+The CLI connects to the local `claude mcp serve` process. It does not attach to an already-open Claude Code Desktop or VS Code conversation. The initial Worker implementation is a single-agent request/response relay and does not implement the full Streamable HTTP session lifecycle, SSE, or resumable sessions. Review [SECURITY.md](SECURITY.md) and [protocol limitations](docs/PROTOCOL.md) before production use.
 
 ## License
 
