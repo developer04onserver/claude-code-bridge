@@ -29,11 +29,15 @@ export default {
     if (url.pathname === "/mcp") {
       if (!authorized(request, env)) return json({ error: "Unauthorized" }, 401);
       if (request.method === "GET") {
-        return new Response("This MCP endpoint uses JSON-RPC POST requests.", { headers: { "content-type": "text/plain" } });
+        return new Response("This MCP endpoint accepts JSON-RPC POST requests.", { headers: { "content-type": "text/plain; charset=utf-8" } });
       }
       if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+      const length = Number(request.headers.get("content-length") || 0);
+      if (length > 1_000_000) return json({ error: "Request body too large" }, 413);
       let payload: unknown;
-      try { payload = await request.json(); } catch { return json({ jsonrpc: "2.0", error: { code: -32700, message: "Parse error" }, id: null }, 400); }
+      try { payload = await request.json(); } catch {
+        return json({ jsonrpc: "2.0", error: { code: -32700, message: "Parse error" }, id: null }, 400);
+      }
       const response = await env.BRIDGE_HUB.get(env.BRIDGE_HUB.idFromName("primary")).fetch("https://hub.internal/dispatch", {
         method: "POST",
         headers: { "content-type": "application/json", "x-bridge-internal": env.BRIDGE_TOKEN },
@@ -48,5 +52,5 @@ export default {
 
 export interface Env {
   BRIDGE_TOKEN: string;
-  BRIDGE_HUB: DurableObjectNamespace<BridgeHub>;
+  BRIDGE_HUB: DurableObjectNamespace;
 }
