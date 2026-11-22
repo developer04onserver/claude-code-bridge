@@ -16,9 +16,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Check local agent syntax
+      - name: Check original agent syntax
         working-directory: agent
         run: node --check src/index.js
+      - name: Install CLI dependencies
+        working-directory: packages/cli
+        run: npm install
+      - name: Check CLI package
+        working-directory: packages/cli
+        run: npm run check
       - name: Install Worker dependencies
         working-directory: worker
         run: npm install
