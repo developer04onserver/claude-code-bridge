@@ -31,7 +31,7 @@ jobs:
         run: npm run check
       - name: Install Worker dependencies
         working-directory: worker
-        run: npm install
+        run: npm install --ignore-scripts
       - name: Type-check Worker
         working-directory: worker
         run: npx tsc --noEmit
