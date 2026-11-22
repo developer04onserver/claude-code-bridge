@@ -16,6 +16,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Install root CLI package dependencies
+        run: npm install
+      - name: Check root CLI package and npm contents
+        run: npm run check && npm pack --dry-run
       - name: Check original agent syntax
         working-directory: agent
         run: node --check src/index.js
