@@ -1,25 +1,14 @@
 # CLI Reference
 
-## Purpose
+## Install
 
-The `ccb` executable is the supported local setup and runtime entry point for Claude Code Bridge. It replaces manual environment-variable setup and direct execution of the agent source.
-
-## Installation
-
-For development from this repository:
+Install directly from the public GitHub repository with npm:
 
 ```bash
-git clone https://github.com/developer04onserver/claude-code-bridge.git
-cd claude-code-bridge/packages/cli
-npm install
-npm link
+npm install --global github:developer04onserver/claude-code-bridge
 ```
 
-The package is prepared for npm publication as `claude-code-bridge-cli`; it is not published by this repository change. Once published, the intended installation command is:
-
-```bash
-npm install --global claude-code-bridge-cli
-```
+The root package manifest defines the CLI executable and includes only its runtime files in the npm package payload. The package is prepared for registry publication under `claude-code-bridge-cli`, but no npm registry release has been made yet.
 
 ## First-time setup
 
@@ -27,38 +16,22 @@ npm install --global claude-code-bridge-cli
 2. Run `ccb init` on the computer that will host Claude Code.
 3. Enter the Worker URL ending in `/mcp`.
 4. Enter the same bearer token used by the Worker.
-5. Run `ccb doctor` to check local prerequisites.
+5. Run `ccb doctor`.
 6. Run `ccb start` and keep it running.
 
-The CLI derives `wss://WORKER_HOST/agent` from the HTTPS MCP URL. It does not ask the user to construct the WebSocket URL manually.
+The CLI derives `wss://WORKER_HOST/agent` from the HTTPS MCP URL.
 
 ## Commands
 
-### `ccb init`
+- `ccb init`: store endpoint and token; interactive token entry is masked.
+- `ccb doctor`: check config and Claude Code executable availability. It does not prove a full MCP round trip.
+- `ccb start`: start `claude mcp serve` and the authenticated outbound WebSocket. Stop with Ctrl+C.
+- `ccb config`: display endpoint settings without printing the token.
 
-Creates the configuration directory and writes the endpoint, token, and Claude executable name. On POSIX systems, the config file is chmod 0600. Interactive token entry does not echo typed characters.
+## Security
 
-Options:
+Treat the bearer token as a password. The configuration file is stored in the user's configuration directory and restricted to the current user where POSIX permissions apply. Do not commit or share it. Anyone possessing the token may be able to invoke tools exposed by the bridge.
 
-- `--url`: Worker MCP endpoint.
-- `--token`: token value; avoid this option on shared systems because command arguments may be visible in process listings and shell history.
+## Scope
 
-### `ccb doctor`
-
-Checks that the config exists and that the configured Claude executable responds to `--version`. It does not prove the Worker is reachable or that an MCP round-trip succeeds.
-
-### `ccb start`
-
-Starts the local `claude mcp serve` child process and the authenticated outbound WebSocket connection. The agent retries the WebSocket connection after disconnects. Stop with Ctrl+C.
-
-### `ccb config`
-
-Displays saved URLs and config path, but never prints the token.
-
-## Security notes
-
-- Treat the bearer token as a password.
-- Do not commit the config file.
-- Use a unique, high-entropy token.
-- Anyone with the token may be able to invoke the local tools exposed by the bridge.
-- The CLI does not bypass Claude Code's local permissions or grant a GUI session API.
+The CLI exposes the local `claude mcp serve` process; it does not mirror an existing Claude Code Desktop or VS Code conversation. The Worker remains a minimal single-agent request/response relay without the full MCP Streamable HTTP session and SSE lifecycle.
