@@ -117,7 +117,7 @@ async function doctor() {
     return;
   }
   const binary = arg("--claude-bin") || config.claudeBin || "claude";
-  const result = spawnSync(binary, ["--version"], { encoding: "utf8", windowsHide: true });
+  const result = spawnSync(binary, ["--version"], { encoding: "utf8", windowsHide: true, shell: process.platform === "win32" });
   if (result.error) {
     console.error("Claude Code: NOT FOUND (" + result.error.message + ")");
     console.error("Install Claude Code and ensure its CLI is on PATH, or set CLAUDE_BIN.");
